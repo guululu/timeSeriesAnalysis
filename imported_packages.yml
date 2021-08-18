@@ -1,0 +1,26 @@
+# conda env export --no-builds | grep -v "^prefix: " > imported_packages.yml
+
+#conda create --name timeSeriesAnalysis python=3.7 -y
+#conda env update --name timeSeriesAnalysis --file=imported_packages.yml
+
+name: timeSeriesAnalysis
+channels:
+  - anaconda
+  - conda-forge
+dependencies:
+  - absl-py
+  - numpy=1.18.1
+  - scipy
+  - matplotlib
+  - seaborn
+  - pandas
+  - scikit-learn
+  - tqdm
+  - openpyxl
+  - pip
+  - tensorflow
+  - statsmodels
+  - jupyterlab
+  - jupyter
+  - pip:
+      - finta
