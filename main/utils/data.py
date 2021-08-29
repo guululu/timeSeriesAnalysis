@@ -1,7 +1,9 @@
 import os
 
+import yfinance as yf
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 from main.io.path_definition import get_project_dir
 
@@ -32,3 +34,67 @@ def load_data() -> pd.DataFrame:
     df_parsed = pd.concat(product_df_list, axis=1)
 
     return df_parsed
+
+
+def covid_country(df, iso_code):
+    covid19 = df[df['iso_code'] == iso_code]
+
+    date = [pd.Timestamp(covid19['date'].iloc[i]) for i in range(len(covid19))]
+
+    columns = ['total_cases', 'new_cases', 'new_cases_smoothed', 'total_deaths', 'new_deaths', 'new_deaths_smoothed',
+               'icu_patients',
+               'hosp_patients']
+
+    data = covid19[columns].values
+
+    columns = [f'{iso_code}_{c}' for c in columns]
+
+    df_covid = pd.DataFrame(data=data, columns=columns, index=date)
+
+    df_covid['week_day'] = [idx.weekday() for idx in df_covid.index]
+    df_covid[f'{iso_code}_new_cases_7_sum'] = df_covid[f'{iso_code}_new_cases'].rolling(7, min_periods=1).sum()
+    df_covid[f'{iso_code}_new_deaths_7_sum'] = df_covid[f'{iso_code}_new_deaths'].rolling(7, min_periods=1).sum()
+    df_covid[f'{iso_code}_new_cases_3_sum'] = df_covid[f'{iso_code}_new_cases'].rolling(3, min_periods=1).sum()
+    df_covid[f'{iso_code}_new_deaths_3_sum'] = df_covid[f'{iso_code}_new_deaths'].rolling(3, min_periods=1).sum()
+
+    for idx, row in df_covid.iterrows():
+        if row['week_day'] == 0:
+            idx_start = idx
+            break
+
+    for idx, row in df_covid.iloc[::-1].iterrows():
+        if row['week_day'] == 6:
+            idx_end = idx
+            break
+
+    df_covid = df_covid.loc[idx_start: idx_end]
+
+    df_covid.drop(labels=['week_day'], axis=1, inplace=True)
+
+    return df_covid.fillna(0)
+
+
+def split_dataset(data, scale: int = 100000):
+    # split into standard weeks
+    train, test = data[7:-210], data[-210:]
+    y_train, y_test = train[:, 0] / scale, test[:, 0] / scale
+
+    # data normalization
+    scaler = MinMaxScaler()
+    train_norm = scaler.fit_transform(train)
+    test_norm = scaler.transform(test)
+
+    # restructure into windows of weekly data
+    train_norm = np.array(np.split(train_norm, len(train_norm) / 7))
+    test_norm = np.array(np.split(test_norm, len(test_norm) / 7))
+    return train_norm, test_norm, y_train, y_test
+
+
+def load_stock_data(code: int):
+    # yahoo finance 下載股票
+
+    data = yf.Ticker(f'{code}.TW')
+
+    df = data.history(start='2017-01-01', end='2021-07-31')
+
+    return df
