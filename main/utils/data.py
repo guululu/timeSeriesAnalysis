@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import yfinance as yf
 import pandas as pd
@@ -74,15 +75,23 @@ def covid_country(df, iso_code):
     return df_covid.fillna(0)
 
 
-def split_dataset(data, scale: int = 100000):
+def split_dataset(data, numerical_columns_index: List, week: int, n_gap: int, n_out: int, scale: int = 100000):
     # split into standard weeks
-    train, test = data[7:-210], data[-210:]
+
+    train, test = data[:-week * 7], data[-(week + n_gap + n_out) * 7:]
     y_train, y_test = train[:, 0] / scale, test[:, 0] / scale
 
     # data normalization
     scaler = MinMaxScaler()
-    train_norm = scaler.fit_transform(train)
-    test_norm = scaler.transform(test)
+    train_norm = scaler.fit_transform(train[:, numerical_columns_index])
+    test_norm = scaler.transform(test[:, numerical_columns_index])
+
+    train_category = np.delete(train, numerical_columns_index, axis=1)
+    test_category = np.delete(test, numerical_columns_index, axis=1)
+
+    # merge categorical data with normalized numerical data
+    train_norm = np.concatenate((train_norm, train_category), axis=1)
+    test_norm = np.concatenate((test_norm, test_category), axis=1)
 
     # restructure into windows of weekly data
     train_norm = np.array(np.split(train_norm, len(train_norm) / 7))
@@ -98,3 +107,25 @@ def load_stock_data(code: int):
     df = data.history(start='2017-01-01', end='2021-07-31')
 
     return df
+
+
+def raw_data_preparation():
+    df_parsed = load_data()
+
+    df = df_parsed.copy()
+    df = df.resample('1D').sum()
+    df.fillna(0, inplace=True)
+
+    df['week_day'] = [idx.weekday() for idx in df.index]
+
+    for idx, row in df.iterrows():
+        if row['week_day'] == 0:
+            idx_start = idx
+            break  # 跳出 for loop
+
+    for idx, row in df.iloc[::-1].iterrows():  # 從後面數回來
+        if row['week_day'] == 6:
+            idx_end = idx
+            break
+
+    return df.loc[idx_start: idx_end]
