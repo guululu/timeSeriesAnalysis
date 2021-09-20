@@ -81,10 +81,8 @@ def split_dataset(data, numerical_columns_index: List, week: int, n_gap: int, n_
     train, test = data[:-week * 7], data[-(week + n_gap + n_out) * 7:]
     y_train, y_test = train[:, 0] / scale, test[:, 0] / scale
 
-    # data normalization
-    scaler = MinMaxScaler()
-    train_norm = scaler.fit_transform(train[:, numerical_columns_index])
-    test_norm = scaler.transform(test[:, numerical_columns_index])
+    train_norm = train[:, numerical_columns_index] / scale
+    test_norm = test[:, numerical_columns_index] / scale
 
     train_category = np.delete(train, numerical_columns_index, axis=1)
     test_category = np.delete(test, numerical_columns_index, axis=1)

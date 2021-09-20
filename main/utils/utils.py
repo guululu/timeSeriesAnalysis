@@ -50,8 +50,9 @@ def stock_feature(code):
     return pd.concat([df_macd, df_vbm, df_ewm], axis=1).fillna(method='bfill')
 
 
-def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int,
-                  numerical_columns_index=None, export_future_time_info: bool = False):
+def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_increment: int = 7,
+                  numerical_columns_index=None, y_weekly_aggregation: bool = False,
+                  x_weekly_aggregation: bool = False):
     '''
     Args:
         n_input: days
@@ -62,13 +63,11 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int,
     # Multivariant input
     # flatten data
 
-    X, y, X_weekly = list(), list(), list()
-    data = train.reshape((train.shape[0] * train.shape[1], train.shape[2]))
+    X, y, X_timestamp, X_weekly, y_weekly = list(), list(), list(), list(), list()
 
-    if export_future_time_info:
-        data_timestamp = np.delete(data, numerical_columns_index, axis=1)
-        data = data[:, numerical_columns_index]
-        X_timestamp = list()
+    data = train.reshape((train.shape[0] * train.shape[1], train.shape[2]))
+    data_timestamp = np.delete(data, numerical_columns_index, axis=1)
+    data = data[:, numerical_columns_index]
 
     in_start = 0
     # step over the entire history one time step at a time
@@ -80,45 +79,20 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int,
         # ensure we have enough data for this instance
         if out_end <= len(data):
             X.append(data[in_start:in_end, :])
-            y.append(np.array(np.split(train_label[out_start: out_end], n_out)).sum(axis=1))
-            X_weekly.append(np.array(np.split(data[in_start:in_end, :], n_out)).sum(axis=1))
-            if export_future_time_info:
-                X_timestamp.append(np.array(np.split(data_timestamp[out_start:out_end, :], n_out))[:, 0])
+            y.append(train_label[out_start: out_end])
+            X_timestamp.append(data_timestamp[out_start:out_end, :])
+            if y_weekly_aggregation:
+                y_weekly.append(np.array(np.split(train_label[out_start: out_end], n_out)).sum(axis=1))
+            if x_weekly_aggregation:
+                X_weekly.append(np.array(np.split(data[in_start:in_end, :], n_out)).sum(axis=1))
         # add another week
-        in_start += 7
+        in_start += day_increment
 
-    if export_future_time_info:
-        return np.array(X), np.array(y), np.array(X_weekly), np.array(X_timestamp)
-    else:
-        return np.array(X), np.array(y), np.array(X_weekly)
+    results = {'X': np.array(X), 'X_weekly': np.array(X_weekly),
+               'X_timestamp': np.array(X_timestamp),
+               'y': np.array(y), 'y_weekly': np.array(y_weekly)}
 
-
-def to_supervised_time(train: np.ndarray, n_input: int, n_out: int, n_gap: int):
-
-    '''
-    Args:
-        n_input: days
-        n_out: measured in weeks
-        n_future: measured in weeks
-    '''
-
-    # Multivariant input
-    # flatten data
-    data = train.reshape((train.shape[0] * train.shape[1], train.shape[2]))
-    X = list()
-    in_start = 0
-    # step over the entire history one time step at a time
-    for _ in range(len(data) - (n_out + n_gap) * 7):
-        # define the end of the input sequence
-        in_end = in_start + n_input
-        out_start = in_end + 7 * n_gap
-        out_end = out_start + 7 * n_out
-        # ensure we have enough data for this instance
-        if out_end <= len(data):
-            X.append(np.array(np.split(data[out_start:out_end, :], n_out))[:, 0])  # take the day of first day
-        # move along one time step
-        in_start += 7
-    return np.array(X)
+    return results
 
 
 

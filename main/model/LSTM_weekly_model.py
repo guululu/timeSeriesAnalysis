@@ -13,13 +13,18 @@ from main.utils.utils import to_supervised
 def build_lstm_v1_model(train, train_label, n_input, lstm_filter, dense_filter_decoder,
                         learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-7, epochs=35, n_out=6, n_gap=7):
     # prepare data
-    train_x, train_y, train_x_weekly = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap)
+    data_dict = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap, 
+                              y_weekly_aggregation=True, x_weekly_aggregation=True)
 
+    train_x = data_dict['X']
+    train_x_weekly = data_dict['x_weekly']
+    train_y_weekly = data_dict['y_weekly']
+    
     # define parameters
     verbose, batch_size = 0, 16
-    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
+    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
     # reshape output into [samples, timesteps, features]
-    train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
+    train_y_weekly = train_y_weekly.reshape((train_y_weekly.shape[0], train_y_weekly.shape[1], 1))
 
     tf.random.set_seed(42)
 
@@ -48,7 +53,7 @@ def build_lstm_v1_model(train, train_label, n_input, lstm_filter, dense_filter_d
     model.compile(loss='mse', optimizer=optimizer)
     # fit network
     model.fit({'main_inputs': train_x, 'weekly_inputs': train_x_weekly},
-              {'outputs': train_y}, epochs=epochs, batch_size=batch_size, verbose=verbose,
+              {'outputs': train_y_weekly}, epochs=epochs, batch_size=batch_size, verbose=verbose,
               shuffle=True)
 
     return model
@@ -57,13 +62,16 @@ def build_lstm_v1_model(train, train_label, n_input, lstm_filter, dense_filter_d
 def build_lstm_v2_model(train, train_label, n_input, lstm_filter, dense_filter_decoder,
                         learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-7, epochs=30, n_out=6, n_gap=7):
     # prepare data
-    train_x, train_y, train_x_weekly = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap)
+    data_dict = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap, y_weekly_aggregation=True)
+
+    train_x = data_dict['X']
+    train_y_weekly = data_dict['y_weekly']
 
     # define parameters
     verbose, batch_size = 0, 16
-    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
+    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
     # reshape output into [samples, timesteps, features]
-    train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
+    train_y_weekly = train_y_weekly.reshape((train_y_weekly.shape[0], train_y_weekly.shape[1], 1))
 
     tf.random.set_seed(42)
 
@@ -83,19 +91,16 @@ def build_lstm_v2_model(train, train_label, n_input, lstm_filter, dense_filter_d
     y = LSTM(lstm_filter, activation='relu', return_sequences=True, dropout=0.3,
              recurrent_dropout=0.1)(decoder_input, initial_state=[state_h, state_c])
 
-    _, _, dim = train_x_weekly.shape
-    weekly_inputs = Input(shape=(n_outputs, dim), name='weekly_inputs')  # 無作用
-
     y = TimeDistributed(Dense(dense_filter_decoder, activation='relu'))(y)
     outputs = TimeDistributed(Dense(1), name='outputs')(y)
 
     optimizer = Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon)
 
-    model = Model(inputs=[main_inputs, weekly_inputs], outputs=outputs)
+    model = Model(inputs=[main_inputs], outputs=outputs)
     model.compile(loss='mse', optimizer=optimizer)
     # fit network
-    model.fit({'main_inputs': train_x, 'weekly_inputs': train_x_weekly},
-              {'outputs': train_y}, epochs=epochs, batch_size=batch_size, verbose=verbose)
+    model.fit({'main_inputs': train_x},
+              {'outputs': train_y_weekly}, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
     return model
 
@@ -103,13 +108,18 @@ def build_lstm_v2_model(train, train_label, n_input, lstm_filter, dense_filter_d
 def build_lstm_v3_model(train, train_label, n_input, lstm_filter, dense_filter_decoder,
                         learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-7, epochs=30, n_out=6, n_gap=7):
     # prepare data
-    train_x, train_y, train_x_weekly = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap)
+    data_dict = to_supervised(train, train_label, n_input, n_out=n_out, n_gap=n_gap,
+                              y_weekly_aggregation=True, x_weekly_aggregation=True)
+
+    train_x = data_dict['X']
+    train_x_weekly = data_dict['x_weekly']
+    train_y_weekly = data_dict['y_weekly']
 
     # define parameters
     verbose, batch_size = 0, 16
-    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
+    n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
     # reshape output into [samples, timesteps, features]
-    train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
+    train_y_weekly = train_y_weekly.reshape((train_y_weekly.shape[0], train_y_weekly.shape[1], 1))
 
     tf.random.set_seed(42)
 
@@ -151,6 +161,6 @@ def build_lstm_v3_model(train, train_label, n_input, lstm_filter, dense_filter_d
     model.compile(loss='mse', optimizer=optimizer)
     # fit network
     model.fit({'main_inputs': train_x, 'weekly_inputs': train_x_weekly},
-              {'outputs': train_y}, epochs=epochs, batch_size=batch_size, verbose=verbose)
+              {'outputs': train_y_weekly}, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
     return model

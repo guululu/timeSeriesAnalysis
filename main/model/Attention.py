@@ -17,7 +17,7 @@ class BahdanauAttention(Layer):
 
         Args:
             units: dimensionality of the context vector
-            verbose:
+            verbo
         '''
 
         super(BahdanauAttention, self).__init__()
