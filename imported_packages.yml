@@ -14,7 +14,7 @@ dependencies:
   - matplotlib
   - seaborn
   - pandas
-  - scikit-learn
+  - scikit-learn>=0.24.2
   - tqdm
   - openpyxl
   - pip
@@ -32,3 +32,4 @@ dependencies:
       - finta
       - yfinance
       - workalendar
+      - pyts

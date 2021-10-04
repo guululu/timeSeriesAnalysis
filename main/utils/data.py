@@ -1,10 +1,9 @@
 import os
-from typing import List
+from typing import List, Optional
 
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 
 from main.io.path_definition import get_project_dir
 
@@ -75,26 +74,21 @@ def covid_country(df, iso_code):
     return df_covid.fillna(0)
 
 
-def split_dataset(data, numerical_columns_index: List, week: int, n_gap: int, n_out: int, scale: int = 100000):
+def split_dataset(data, week: int, n_gap: int, n_out: int, scale: int = 100000, scaler=None):
     # split into standard weeks
+
+    data = data.copy()
 
     train, test = data[:-week * 7], data[-(week + n_gap + n_out) * 7:]
     y_train, y_test = train[:, 0] / scale, test[:, 0] / scale
 
-    train_norm = train[:, numerical_columns_index] / scale
-    test_norm = test[:, numerical_columns_index] / scale
-
-    train_category = np.delete(train, numerical_columns_index, axis=1)
-    test_category = np.delete(test, numerical_columns_index, axis=1)
-
-    # merge categorical data with normalized numerical data
-    train_norm = np.concatenate((train_norm, train_category), axis=1)
-    test_norm = np.concatenate((test_norm, test_category), axis=1)
-
+    train = train / scale
+    test = test / scale
     # restructure into windows of weekly data
-    train_norm = np.array(np.split(train_norm, len(train_norm) / 7))
-    test_norm = np.array(np.split(test_norm, len(test_norm) / 7))
-    return train_norm, test_norm, y_train, y_test
+    # train_norm = np.array(np.split(train, len(train) / 7))
+    # test_norm = np.array(np.split(test, len(test) / 7))
+
+    return train, test, y_train, y_test
 
 
 def load_stock_data(code: int):

@@ -1,9 +1,4 @@
-# from typing import Tuple
-# from collections import OrderedDict
-#
-# from sklearn.preprocessing import MinMaxScaler
-
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -51,13 +46,13 @@ def stock_feature(code):
 
 
 def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_increment: int = 7,
-                  numerical_columns_index=None, y_weekly_aggregation: bool = False,
-                  x_weekly_aggregation: bool = False):
+                  statistical_operation: Dict = None, timestamp_columns_index=None):
     '''
     Args:
         n_input: days
         n_out: measured in weeks
         n_future: measured in weeks
+        statistical_operation: used only for weekly2weekly model
     '''
 
     # Multivariant input
@@ -66,8 +61,6 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_
     X, y, X_timestamp, X_weekly, y_weekly = list(), list(), list(), list(), list()
 
     data = train.reshape((train.shape[0] * train.shape[1], train.shape[2]))
-    data_timestamp = np.delete(data, numerical_columns_index, axis=1)
-    data = data[:, numerical_columns_index]
 
     in_start = 0
     # step over the entire history one time step at a time
@@ -77,14 +70,28 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_
         out_start = in_end + 7 * n_gap
         out_end = out_start + 7 * n_out
         # ensure we have enough data for this instance
+
+        X = []
+        feature_data_weekly = []
+
         if out_end <= len(data):
-            X.append(data[in_start:in_end, :])
-            y.append(train_label[out_start: out_end])
-            X_timestamp.append(data_timestamp[out_start:out_end, :])
-            if y_weekly_aggregation:
-                y_weekly.append(np.array(np.split(train_label[out_start: out_end], n_out)).sum(axis=1))
-            if x_weekly_aggregation:
-                X_weekly.append(np.array(np.split(data[in_start:in_end, :], n_out)).sum(axis=1))
+            target_data = train_label[out_start: out_end]
+            target_data_weekly = np.array(np.split(target_data, n_out)).sum(axis=1)
+            if timestamp_columns_index:
+                X_timestamp.append(data[out_start:out_end, timestamp_columns_index])
+            for col_index, operations in statistical_operation.items():
+                for operation in operations:
+                    statistical_feature = eval(f'np.nan{operation}(np.array(np.split(data[in_start:in_end, '
+                                               f'col_index], n_input // 7)), axis=1, keepdims=True)')
+                    if np.isnan(np.sum(statistical_feature)):
+                        statistical_feature = np.nan_to_num(statistical_feature)
+                    # statistical_feature = np.expand_dims(statistical_feature, 1)
+                    feature_data_weekly.append(statistical_feature)
+            feature_data_weekly = np.concatenate(feature_data_weekly, axis=1)
+            y.append(target_data)
+            X_weekly.append(feature_data_weekly)
+            y_weekly.append(target_data_weekly)
+
         # add another week
         in_start += day_increment
 
@@ -95,5 +102,22 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_
     return results
 
 
+def time_series_data_preparation(train, train_label, n_input,
+                                 n_out=4, n_gap=7, day_increment=7, statistical_operation: Optional[Dict] = None,
+                                 timestamp_columns_index: Optional[List] = None):
+    # prepare data
+    data_dict = to_supervised(train, train_label, n_input, n_out=n_out,
+                              n_gap=n_gap, day_increment=day_increment, statistical_operation=statistical_operation,
+                              timestamp_columns_index=timestamp_columns_index)
 
+    train_x = data_dict['X']
+    train_y = data_dict['y']
+    train_x_weekly = data_dict['X_weekly']
+    train_x_time = data_dict['X_timestamp']
+    train_y_weekly = data_dict['y_weekly']
 
+    # reshape output into [samples, timesteps, features]
+    train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
+    train_y_weekly = train_y_weekly.reshape((train_y_weekly.shape[0], train_y_weekly.shape[1], 1))
+
+    return train_x, train_x_weekly, train_y, train_x_time, train_y_weekly
