@@ -8,9 +8,8 @@ from sklearn.model_selection import TimeSeriesSplit
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 
-from main.utils.data import split_dataset
 from train.LSTM_weekly2weekly_model import build_lstm_v2_model, build_cnn_lstm_v2_model, \
-    build_cnn_lstm_v2_luong_model, build_lstm_feed_model, build_cnn_bi_lstm_v2_luong_model
+    build_cnn_lstm_v2_luong_model, build_lstm_feed_model, build_conv2d_lstm_v2_model
 
 
 def forecast(model: Model, history: List, n_input: int,
@@ -32,6 +31,8 @@ def forecast(model: Model, history: List, n_input: int,
 
     input_weekly = np.expand_dims(np.concatenate(input_weekly, axis=1), 0)
 
+    if len(model.input.shape) == 5:
+        input_weekly = input_weekly.reshape(input_weekly.shape[0], 2, 1, 4, input_weekly.shape[-1])
     # forecast the next week
     yhat = model.predict(input_weekly, verbose=0)
     # we only want the vector forecast
@@ -61,9 +62,9 @@ def evaluation_model(model: Model, train, test, label_test,  n_input: int, n_out
     return predictions, observations
 
 
-def training_process(daily_data: pd.DataFrame, epochs, lstm_units,
-                     decoder_dense_units, conv1d_filters, learning_rate, beta_1, beta_2, epsilon, model_name: str,
-                     statistical_operation: Dict = None, scaler=None,
+def training_process(daily_data: pd.DataFrame, epochs, decoder_dense_units, learning_rate, beta_1, beta_2, epsilon,
+                     model_name: str, statistical_operation: Optional[Dict] = None, scaler=None,
+                     lstm_units: Optional[int] = None, conv1d_filters: Optional[int] = None,
                      n_input: Optional[int] = None, n_out: Optional[int] = None, n_gap: Optional[int] = None,
                      scale: Optional[int] = None):
 
@@ -71,6 +72,15 @@ def training_process(daily_data: pd.DataFrame, epochs, lstm_units,
 
     predictions = []
     observations = []
+
+    if conv1d_filters:
+        conv1d_filters = int(conv1d_filters)
+
+    if lstm_units:
+        lstm_units = int(lstm_units)
+
+    decoder_dense_units = int(decoder_dense_units)
+    epochs = int(epochs)
 
     for train_index, val_index in tscv.split(daily_data):
 
@@ -90,32 +100,32 @@ def training_process(daily_data: pd.DataFrame, epochs, lstm_units,
         optimizer = Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon)
 
         if model_name == 'lstm_v2':
-            model = build_lstm_v2_model(train, train_label, n_input=n_input, lstm_units=int(lstm_units),
-                                        decoder_dense_units=int(decoder_dense_units),
-                                        optimizer=optimizer, epochs=int(epochs), n_out=n_out, n_gap=n_gap,
+            model = build_lstm_v2_model(train, train_label, n_input=n_input, lstm_units=lstm_units,
+                                        decoder_dense_units=decoder_dense_units, optimizer=optimizer,
+                                        epochs=epochs, n_out=n_out, n_gap=n_gap,
                                         statistical_operation=statistical_operation)
         if model_name == 'cnn_lstm_v2':
-            model = build_cnn_lstm_v2_model(train, train_label, n_input=n_input, lstm_units=int(lstm_units),
-                                            decoder_dense_units=int(decoder_dense_units), conv1d_filters=int(conv1d_filters),
-                                            optimizer=optimizer, epochs=int(epochs), n_out=n_out, n_gap=n_gap,
+            model = build_cnn_lstm_v2_model(train, train_label, n_input=n_input, lstm_units=lstm_units,
+                                            decoder_dense_units=decoder_dense_units, conv1d_filters=conv1d_filters,
+                                            optimizer=optimizer, epochs=epochs, n_out=n_out, n_gap=n_gap,
                                             statistical_operation=statistical_operation)
         if model_name == 'cnn_lstm_v2_luong':
-            model = build_cnn_lstm_v2_luong_model(train, train_label, n_input=n_input, lstm_units=int(lstm_units),
-                                                  decoder_dense_units=int(decoder_dense_units),
-                                                  conv1d_filters=int(conv1d_filters), optimizer=optimizer,
-                                                  epochs=int(epochs), n_out=n_out, n_gap=n_gap,
+            model = build_cnn_lstm_v2_luong_model(train, train_label, n_input=n_input, lstm_units=lstm_units,
+                                                  decoder_dense_units=decoder_dense_units,
+                                                  conv1d_filters=conv1d_filters, optimizer=optimizer,
+                                                  epochs=epochs, n_out=n_out, n_gap=n_gap,
                                                   statistical_operation=statistical_operation)
-        if model_name == 'cnn_bi_lstm_v2_luong':
-            model = build_cnn_bi_lstm_v2_luong_model(train, train_label, n_input=n_input, lstm_units=int(lstm_units),
-                                                     decoder_dense_units=int(decoder_dense_units),
-                                                     conv1d_filters=int(conv1d_filters), optimizer=optimizer,
-                                                     epochs=int(epochs), n_out=n_out, n_gap=n_gap,
-                                                     statistical_operation=statistical_operation)
         if model_name == 'lstm_feed':
-            model = build_lstm_feed_model(train, train_label, n_input=n_input, lstm_units=int(lstm_units),
-                                          decoder_dense_units=int(decoder_dense_units),
-                                          optimizer=optimizer, epochs=int(epochs), n_out=n_out, n_gap=n_gap,
+            model = build_lstm_feed_model(train, train_label, n_input=n_input, lstm_units=lstm_units,
+                                          decoder_dense_units=decoder_dense_units, optimizer=optimizer,
+                                          epochs=epochs, n_out=n_out, n_gap=n_gap,
                                           statistical_operation=statistical_operation)
+
+        if model_name == 'conv2d_lstm_v2':
+            model = build_conv2d_lstm_v2_model(train, train_label, n_input=n_input, filters=conv1d_filters,
+                                               decoder_dense_units=decoder_dense_units,  optimizer=optimizer,
+                                               epochs=epochs, n_out=n_out, n_gap=n_gap,
+                                               statistical_operation=statistical_operation)
 
         p, o = evaluation_model(model, train, val, val_label, n_input, n_out=n_out, n_gap=n_gap,
                                 statistical_operation=statistical_operation)
