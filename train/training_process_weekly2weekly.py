@@ -68,11 +68,6 @@ def training_process(daily_data: pd.DataFrame, epochs, decoder_dense_units, lear
                      n_input: Optional[int] = None, n_out: Optional[int] = None, n_gap: Optional[int] = None,
                      scale: Optional[int] = None):
 
-    tscv = TimeSeriesSplit(n_splits=13, test_size=n_out * 7, max_train_size=52 * 7)
-
-    predictions = []
-    observations = []
-
     if conv1d_filters:
         conv1d_filters = int(conv1d_filters)
 
@@ -81,6 +76,11 @@ def training_process(daily_data: pd.DataFrame, epochs, decoder_dense_units, lear
 
     decoder_dense_units = int(decoder_dense_units)
     epochs = int(epochs)
+
+    tscv = TimeSeriesSplit(n_splits=13, test_size=n_out * 7, max_train_size=52 * 7)
+
+    predictions = []
+    observations = []
 
     for train_index, val_index in tscv.split(daily_data):
 

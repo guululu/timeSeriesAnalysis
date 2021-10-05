@@ -71,7 +71,7 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_
         out_end = out_start + 7 * n_out
         # ensure we have enough data for this instance
 
-        X = []
+        feature_data_daily = []
         feature_data_weekly = []
 
         if out_end <= len(data):
@@ -80,14 +80,17 @@ def to_supervised(train, train_label, n_input: int, n_out: int, n_gap: int, day_
             if timestamp_columns_index:
                 X_timestamp.append(data[out_start:out_end, timestamp_columns_index])
             for col_index, operations in statistical_operation.items():
+                daily_data = data[in_start: in_end, col_index]
+                feature_data_daily.append(np.expand_dims(daily_data, 1))
                 for operation in operations:
-                    statistical_feature = eval(f'np.nan{operation}(np.array(np.split(data[in_start:in_end, '
-                                               f'col_index], n_input // 7)), axis=1, keepdims=True)')
+                    statistical_feature = eval(f'np.nan{operation}(np.array(np.split(daily_data, n_input // 7)), '
+                                               f'axis=1, keepdims=True)')
                     if np.isnan(np.sum(statistical_feature)):
                         statistical_feature = np.nan_to_num(statistical_feature)
-                    # statistical_feature = np.expand_dims(statistical_feature, 1)
                     feature_data_weekly.append(statistical_feature)
             feature_data_weekly = np.concatenate(feature_data_weekly, axis=1)
+            feature_data_daily = np.concatenate(feature_data_daily, axis=1)
+            X.append(feature_data_daily)
             y.append(target_data)
             X_weekly.append(feature_data_weekly)
             y_weekly.append(target_data_weekly)
