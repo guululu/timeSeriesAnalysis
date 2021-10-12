@@ -6,12 +6,14 @@ from main.model.LSTM_daily2weekly_architecture import build_lstm_v1_architecture
 
 
 def build_lstm_v1_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0):
+                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
+                        statistical_operation: Dict = None):
     # prepare data
 
-    train_x, train_x_weekly, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
-                                                                                 n_out=n_out, n_gap=n_gap,
-                                                                                 day_increment=day_increment)
+    train_x, train_x_weekly, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
+                                                                              n_out=n_out, n_gap=n_gap,
+                                                                              day_increment=day_increment,
+                                                                              statistical_operation=statistical_operation)
 
     # define parameters
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
@@ -29,11 +31,13 @@ def build_lstm_v1_model(train, train_label, n_input, lstm_units, decoder_dense_u
 
 
 def build_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0):
+                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
+                        statistical_operation: Dict = None):
     # prepare data
-    train_x, _, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
-                                                                    n_out=n_out, n_gap=n_gap,
-                                                                    day_increment=day_increment)
+    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
+                                                                 n_out=n_out, n_gap=n_gap,
+                                                                 day_increment=day_increment,
+                                                                 statistical_operation=statistical_operation)
 
     # define parameters
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
@@ -51,11 +55,13 @@ def build_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_dense_u
 
 
 def build_lstm_v3_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0):
+                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
+                        statistical_operation: Optional[Dict] = None):
     # prepare data
-    train_x, train_x_weekly, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
-                                                                                 n_out=n_out, n_gap=n_gap,
-                                                                                 day_increment=day_increment)
+    train_x, train_x_weekly, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
+                                                                              n_out=n_out, n_gap=n_gap,
+                                                                              day_increment=day_increment,
+                                                                              statistical_operation=statistical_operation)
 
     # define parameters
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]
@@ -76,10 +82,10 @@ def build_cnn_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_den
                             epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
                             statistical_operation: Optional[Dict] = None):
     # prepare data
-    train_x, _, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
-                                                                    n_out=n_out, n_gap=n_gap,
-                                                                    day_increment=day_increment,
-                                                                    statistical_operation=statistical_operation)
+    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
+                                                                 n_out=n_out, n_gap=n_gap,
+                                                                 day_increment=day_increment,
+                                                                 statistical_operation=statistical_operation)
 
     # define parameters
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y_weekly.shape[1]

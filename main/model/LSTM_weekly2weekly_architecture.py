@@ -93,6 +93,27 @@ def build_lstm_feed_architecture(lstm_units, decoder_dense_units, n_inputs, n_fe
 def build_cnn_lstm_v2_architecture(lstm_units, decoder_dense_units, conv1d_filters,
                                    n_inputs, n_features, n_outputs) -> Model:
 
+    '''
+    10.81
+
+    beta_1 = 0.95
+    beta_2 = 0.9999
+    conv1d_filters = 25
+    decoder_dense_units = 15
+    epochs = 15
+    epsilon = 1e-5
+    learning_rate = 0.003
+    lstm_units = 111
+
+    :param lstm_units:
+    :param decoder_dense_units:
+    :param conv1d_filters:
+    :param n_inputs:
+    :param n_features:
+    :param n_outputs:
+    :return:
+    '''
+
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
     random.seed(42)

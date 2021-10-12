@@ -1,35 +1,23 @@
-# conda env export --no-builds | grep -v "^prefix: " > imported_packages.yml
-
-#conda create --name timeSeriesAnalysis python=3.7 -y
-#conda env update --name timeSeriesAnalysis --file=imported_packages.yml
-
+#  conda env export --no-builds | grep -v "^prefix: " > imported_packages.yml
+#  conda create --name timeSeriesAnalysis python=3.9 -y
+#  conda env update --name timeSeriesAnalysis --file=imported_packages.yml
+#  brew install libffi
 name: timeSeriesAnalysis
 channels:
   - anaconda
   - conda-forge
 dependencies:
-  - absl-py
-  - numpy
-  - scipy
   - matplotlib
-  - seaborn
   - pandas
-  - scikit-learn>=0.24.2
-  - tqdm
   - openpyxl
   - pip
-  - tensorflow>=2.0.0
+  - tensorflow>=2.4.0
+  - tensorflow-datasets
   - statsmodels
   - jupyterlab
   - jupyter
-  - holidays
-  - xgboost
-  - catboost
-  - lightgbm
+  - pyyaml
+#  - holidays
   - bayesian-optimization
-  - prophet
   - pip:
-      - finta
-      - yfinance
-      - workalendar
-      - pyts
+      - protobuf
