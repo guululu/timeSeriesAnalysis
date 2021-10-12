@@ -1,15 +1,40 @@
 from typing import Dict, Optional
 
+import numpy as np
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Optimizer
+
 from main.utils.utils import time_series_data_preparation
 from main.model.LSTM_daily2weekly_architecture import build_lstm_v1_architecture, build_lstm_v2_architecture, \
     build_lstm_v3_architecture, build_cnn_lstm_v2_architecture
 
 
-def build_lstm_v1_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
-                        statistical_operation: Dict = None):
-    # prepare data
+def build_lstm_v1_model(train: 'np.ndarray', train_label: 'np.ndarray', n_input: int, lstm_units: int,
+                        decoder_dense_units: int, optimizer: Optimizer, epochs: int, n_out: int, n_gap: int,
+                        day_increment: int, batch_size: int, verbose: int, statistical_operation: Dict) -> Model:
+    """
+    Args:
+        train: model training input features
+        train_label: model training input target
+        epochs: Number of epochs to train the model. An epoch is an iteration over the entire x and y data provided.
+                Note that in conjunction with initial_epoch, epochs is to be understood as "final epoch". The model is
+                not trained for a number of iterations given by epochs, but merely until the epoch of index epochs
+                is reached.
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        batch_size: Number of samples per batch.
+        verbose: Verbosity mode, 0 or 1.
+        n_input: time steps of encoder in days.
+        n_out: time steps of decoder in weeks.
+        n_gap: time difference between end of encoder and begin of decoder in weeks.
+        statistical_operation: specify the method of data aggregation from daily data to weekly data.
+        optimizer: Keras optimizers.
+        day_increment: day increment of generate new data
+    Returns:
+        A tensorflow trained model
+    """
 
+    # prepare data
     train_x, train_x_weekly, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
                                                                               n_out=n_out, n_gap=n_gap,
                                                                               day_increment=day_increment,
@@ -30,9 +55,31 @@ def build_lstm_v1_model(train, train_label, n_input, lstm_units, decoder_dense_u
     return model
 
 
-def build_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
-                        statistical_operation: Dict = None):
+def build_lstm_v2_model(train: 'np.ndarray', train_label: 'np.ndarray', n_input: int, lstm_units: int,
+                        decoder_dense_units: int, optimizer: Optimizer, epochs: int, n_out: int, n_gap: int,
+                        day_increment: int, batch_size: int, verbose: int, statistical_operation: Dict) -> Model:
+    """
+    Args:
+        train: model training input features
+        train_label: model training input target
+        epochs: Number of epochs to train the model. An epoch is an iteration over the entire x and y data provided.
+                Note that in conjunction with initial_epoch, epochs is to be understood as "final epoch". The model is
+                not trained for a number of iterations given by epochs, but merely until the epoch of index epochs
+                is reached.
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        batch_size: Number of samples per batch.
+        verbose: Verbosity mode, 0 or 1.
+        n_input: time steps of encoder in days.
+        n_out: time steps of decoder in weeks.
+        n_gap: time difference between end of encoder and begin of decoder in weeks.
+        statistical_operation: specify the method of data aggregation from daily data to weekly data.
+        optimizer: Keras optimizers.
+        day_increment: day increment of generate new data
+    Returns:
+        A tensorflow trained model
+    """
+
     # prepare data
     train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
                                                                  n_out=n_out, n_gap=n_gap,
@@ -54,9 +101,31 @@ def build_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_dense_u
     return model
 
 
-def build_lstm_v3_model(train, train_label, n_input, lstm_units, decoder_dense_units, optimizer,
-                        epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
-                        statistical_operation: Optional[Dict] = None):
+def build_lstm_v3_model(train: 'np.ndarray', train_label: 'np.ndarray', n_input: int, lstm_units: int,
+                        decoder_dense_units: int, optimizer: Optimizer, epochs: int, n_out: int, n_gap: int,
+                        day_increment: int, batch_size: int, verbose: int, statistical_operation: Dict) -> Model:
+    """
+    Args:
+        train: model training input features
+        train_label: model training input target
+        epochs: Number of epochs to train the model. An epoch is an iteration over the entire x and y data provided.
+                Note that in conjunction with initial_epoch, epochs is to be understood as "final epoch". The model is
+                not trained for a number of iterations given by epochs, but merely until the epoch of index epochs
+                is reached.
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        batch_size: Number of samples per batch.
+        verbose: Verbosity mode, 0 or 1.
+        n_input: time steps of encoder in days.
+        n_out: time steps of decoder in weeks.
+        n_gap: time difference between end of encoder and begin of decoder in weeks.
+        statistical_operation: specify the method of data aggregation from daily data to weekly data.
+        optimizer: Keras optimizers.
+        day_increment: day increment of generate new data
+    Returns:
+        A tensorflow trained model
+    """
+
     # prepare data
     train_x, train_x_weekly, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
                                                                               n_out=n_out, n_gap=n_gap,
@@ -78,12 +147,35 @@ def build_lstm_v3_model(train, train_label, n_input, lstm_units, decoder_dense_u
     return model
 
 
-def build_cnn_lstm_v2_model(train, train_label, n_input, lstm_units, decoder_dense_units, conv1d_filters, optimizer,
-                            epochs=35, n_out=6, n_gap=7, day_increment=7, batch_size=16, verbose=0,
-                            statistical_operation: Optional[Dict] = None):
+def build_cnn_lstm_v2_model(train: 'np.ndarray', train_label: 'np.ndarray', n_input: int, lstm_units: int,
+                            decoder_dense_units: int, conv1d_filters, optimizer: Optimizer, epochs: int, n_out: int,
+                            n_gap: int, day_increment: int, batch_size: int, verbose: int,
+                            statistical_operation: Dict) -> Model:
+    """
+    Args:
+        train: model training input features
+        train_label: model training input target
+        epochs: Number of epochs to train the model. An epoch is an iteration over the entire x and y data provided.
+                Note that in conjunction with initial_epoch, epochs is to be understood as "final epoch". The model is
+                not trained for a number of iterations given by epochs, but merely until the epoch of index epochs
+                is reached.
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        conv1d_filters: Integer, the dimensionality of the output space.
+        batch_size: Number of samples per batch.
+        verbose: Verbosity mode, 0 or 1.
+        n_input: time steps of encoder in days.
+        n_out: time steps of decoder in weeks.
+        n_gap: time difference between end of encoder and begin of decoder in weeks.
+        statistical_operation: specify the method of data aggregation from daily data to weekly data.
+        optimizer: Keras optimizers.
+        day_increment: day increment of generate new data
+    Returns:
+        A tensorflow trained model
+    """
+
     # prepare data
-    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input,
-                                                                 n_out=n_out, n_gap=n_gap,
+    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input, n_out=n_out, n_gap=n_gap,
                                                                  day_increment=day_increment,
                                                                  statistical_operation=statistical_operation)
 

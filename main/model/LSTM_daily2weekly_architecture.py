@@ -9,7 +9,18 @@ from tensorflow.keras.layers import Input, LSTM, TimeDistributed, Dense, RepeatV
     Dropout, Conv1D, Flatten, MaxPooling1D, Dot, Activation
 
 
-def build_lstm_v1_architecture(lstm_units, decoder_dense_units, n_timesteps, n_features, n_outputs):
+def build_lstm_v1_architecture(lstm_units, decoder_dense_units, n_input, n_feature, n_out):
+    '''
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -17,11 +28,11 @@ def build_lstm_v1_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     np.random.seed(42)
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x, state_h, state_c = LSTM(lstm_units, activation='tanh', return_state=True, dropout=0.1,
                                recurrent_dropout=0.1)(main_inputs)
 
-    weekly_inputs = Input(shape=(n_outputs, n_features), name='weekly_inputs')
+    weekly_inputs = Input(shape=(n_out, n_feature), name='weekly_inputs')
 
     y = LSTM(lstm_units, activation='tanh', return_sequences=True, dropout=0.1,
              recurrent_dropout=0.1)(weekly_inputs, initial_state=[state_h, state_c])
@@ -34,7 +45,19 @@ def build_lstm_v1_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     return model
 
 
-def build_lstm_v2_architecture(lstm_units, decoder_dense_units, n_timesteps, n_features, n_outputs):
+def build_lstm_v2_architecture(lstm_units: int, decoder_dense_units: int, n_input: int, n_feature: int, n_out: int):
+
+    '''
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -42,11 +65,11 @@ def build_lstm_v2_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     np.random.seed(42)
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x, state_h, state_c = LSTM(lstm_units, activation='tanh', return_state=True, dropout=0.1,
                                recurrent_dropout=0.1)(main_inputs)
 
-    decoder_input = RepeatVector(n_outputs)(x)  # Repeatvector(n_out)(state_h)
+    decoder_input = RepeatVector(n_out)(x)  # Repeatvector(n_out)(state_h)
 
     y = LSTM(lstm_units, activation='tanh', return_sequences=True, dropout=0.1,
              recurrent_dropout=0.1)(decoder_input, initial_state=[state_h, state_c])
@@ -59,7 +82,18 @@ def build_lstm_v2_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     return model
 
 
-def build_lstm_v3_architecture(lstm_units, decoder_dense_units, n_timesteps, n_features, n_outputs):
+def build_lstm_v3_architecture(lstm_units: int, decoder_dense_units: int, n_input: int, n_feature: int, n_out: int):
+    '''
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -67,12 +101,12 @@ def build_lstm_v3_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     np.random.seed(42)
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x, state_h, state_c = LSTM(lstm_units, activation='tanh', return_state=True, dropout=0.1,
                                recurrent_dropout=0.1)(main_inputs)
 
-    decoder_input = RepeatVector(n_outputs)(x)  # Repeatvector(n_out)(state_h)
-    weekly_inputs = Input(shape=(n_outputs, n_features), name='weekly_inputs')
+    decoder_input = RepeatVector(n_out)(x)  # Repeatvector(n_out)(state_h)
+    weekly_inputs = Input(shape=(n_out, n_feature), name='weekly_inputs')
     decoder_input = Concatenate(axis=2)([decoder_input, weekly_inputs])
 
     y = LSTM(lstm_units, activation='tanh', return_sequences=True, dropout=0.1,
@@ -86,7 +120,18 @@ def build_lstm_v3_architecture(lstm_units, decoder_dense_units, n_timesteps, n_f
     return model
 
 
-def build_lstm_feed_architecture(lstm_units, decoder_dense_units, n_timesteps, n_features, n_outputs):
+def build_lstm_feed_architecture(lstm_units: int, decoder_dense_units: int, n_input: int, n_feature: int, n_out: int):
+    '''
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -94,7 +139,7 @@ def build_lstm_feed_architecture(lstm_units, decoder_dense_units, n_timesteps, n
     np.random.seed(42)
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x, state_h, state_c = LSTM(lstm_units, activation='tanh', return_state=True, dropout=0.1,
                                recurrent_dropout=0.1, name='LSTM_encoder')(main_inputs)
 
@@ -109,7 +154,7 @@ def build_lstm_feed_architecture(lstm_units, decoder_dense_units, n_timesteps, n
     states = [state_h, state_c]
     all_outputs = []
 
-    for it in range(n_outputs):
+    for it in range(n_out):
         # step 1. feed concatenated inputs into decoder with concatenated inputs defined
         decoder_outputs, decoder_state_h, decoder_state_c = decoder_lstm(input, initial_state=states)
 
@@ -128,8 +173,24 @@ def build_lstm_feed_architecture(lstm_units, decoder_dense_units, n_timesteps, n
     return model
 
 
-def build_cnn_lstm_v2_architecture(lstm_units, decoder_dense_units, conv1d_filters,
-                                   n_timesteps, n_features, n_outputs):
+def build_cnn_lstm_v2_architecture(lstm_units: int, decoder_dense_units: int, conv1d_filters: int,
+                                   n_input: int, n_feature: int, n_out: int):
+    '''
+    A CNN-LSTM seq2seq model by replacing the LSTM in encoder with Con1D layers
+
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        conv1d_filters: Integer, the dimensionality of the output space
+                        (i.e. the number of output filters in the convolution).
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
+
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -137,15 +198,15 @@ def build_cnn_lstm_v2_architecture(lstm_units, decoder_dense_units, conv1d_filte
     np.random.seed(42)
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x = Conv1D(filters=conv1d_filters, kernel_size=3, activation='relu', padding='same',  # 加權平均
-               input_shape=(n_timesteps, n_features))(main_inputs)
+               input_shape=(n_input, n_feature))(main_inputs)
     x = Dropout(0.3)(x)
     x = Conv1D(filters=conv1d_filters, kernel_size=3, activation='relu', padding='same',  # 加權平均
-               input_shape=(n_timesteps, n_features))(x)
+               input_shape=(n_input, n_feature))(x)
     x = MaxPooling1D(pool_size=2)(x)
     x = Flatten()(x)
-    decoder_input = RepeatVector(n_outputs)(x)  # Repeatvector(n_out)(state_h)
+    decoder_input = RepeatVector(n_out)(x)  # Repeatvector(n_out)(state_h)
 
     y = LSTM(lstm_units, activation='tanh', return_sequences=True, dropout=0.1,
              recurrent_dropout=0.1)(decoder_input)
@@ -158,8 +219,23 @@ def build_cnn_lstm_v2_architecture(lstm_units, decoder_dense_units, conv1d_filte
     return model
 
 
-def build_cnn_lstm_v2_luong_architecture(lstm_units, decoder_dense_units, conv1d_filters,
-                                         n_timesteps, n_features, n_outputs):
+def build_cnn_lstm_v2_luong_architecture(lstm_units: int, decoder_dense_units: int, conv1d_filters: int,
+                                         n_input: int, n_feature: int, n_out: int):
+    '''
+    A CNN-LSTM seq2seq model by replacing the LSTM in encoder with Con1D layers
+
+    Args:
+        lstm_units: Positive integer, dimensionality of the output space.
+        decoder_dense_units: Positive integer, dimensionality of the output space.
+        conv1d_filters: Integer, the dimensionality of the output space
+                        (i.e. the number of output filters in the convolution).
+        n_input: time steps of encoder in days.
+        n_feature: number of features.
+        n_out: time steps of decoder in weeks.
+
+    Returns:
+        A tensorflow model architecture
+    '''
 
     tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '42'
@@ -172,9 +248,9 @@ def build_cnn_lstm_v2_luong_architecture(lstm_units, decoder_dense_units, conv1d
     output_dense = Dense(1, activation='relu', name='output_dense')
 
     # define model
-    main_inputs = Input(shape=(n_timesteps, n_features), name='daily_inputs')
+    main_inputs = Input(shape=(n_input, n_feature), name='daily_inputs')
     x_days = Conv1D(filters=conv1d_filters, kernel_size=3, activation='relu', padding='same',  # 加權平均
-                    input_shape=(n_timesteps, n_features), name='Conv1D_encoder_a')(main_inputs)
+                    input_shape=(n_input, n_feature), name='Conv1D_encoder_a')(main_inputs)
     x_days = Dropout(0.3)(x_days)
     x_days = Conv1D(filters=lstm_units, kernel_size=3, activation='relu', padding='same', name='Conv1D_encoder_b')(x_days)
 
@@ -183,7 +259,7 @@ def build_cnn_lstm_v2_luong_architecture(lstm_units, decoder_dense_units, conv1d
 
     x_days = MaxPooling1D(pool_size=4)(encoder_stack_h)
     x_days = Flatten()(x_days)
-    decoder_input = RepeatVector(n_outputs)(x_days)  # Repeatvector(n_out)(state_h)
+    decoder_input = RepeatVector(n_out)(x_days)  # Repeatvector(n_out)(state_h)
 
     decoder_stack_h = decoder_lstm(decoder_input)
 
