@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict, Tuple, Optional
 
 import numpy as np
-
+import tensorflow as tf
 from bayes_opt import BayesianOptimization
 from bayes_opt.logger import JSONLogger
 from bayes_opt.event import Events
@@ -39,7 +39,7 @@ def optimization_process(fn, pbounds: Dict, model_name: str, model_type: str) ->
     previous_logs = glob(f"{get_project_dir()}/data/optimization/{model_type}_{model_name}_logs_*.json")
 
     if previous_logs:
-        load_logs(optimizer, logs=[logs])
+        load_logs(optimizer, logs=previous_logs)
 
     logger = JSONLogger(path=logs)
     optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
@@ -131,3 +131,91 @@ def time_series_data_preparation(train, train_label, n_input: int, n_out: int, n
     train_y_weekly = train_y_weekly.reshape((train_y_weekly.shape[0], train_y_weekly.shape[1], 1))
 
     return train_x, train_x_weekly, train_y, train_y_weekly
+
+
+def get_angles(pos, i, d_model):
+    angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
+    return pos * angle_rates
+
+
+def positional_encoding(position, d_model):
+    angle_rads = get_angles(np.arange(position)[:, np.newaxis],
+                            np.arange(d_model)[np.newaxis, :],
+                            d_model)
+
+    # apply sin to even indices in the array; 2i
+    angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+
+    # apply cos to odd indices in the array; 2i+1
+    angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+
+    pos_encoding = angle_rads[np.newaxis, ...]
+
+    return tf.cast(pos_encoding, dtype=tf.float32)
+
+
+def create_padding_mask(seq):
+
+    seq = tf.cast(tf.math.equal(seq, 0), tf.float32)
+
+    if len(seq.shape) == 3:
+        seq = tf.reduce_sum(seq, axis=2)
+        seq = tf.cast(tf.math.equal(seq, 0), tf.float32)
+
+    # add extra dimensions to add the padding
+    # to the attention logits.
+    return seq[:, tf.newaxis, tf.newaxis, :]
+
+
+def create_look_ahead_mask(size):
+
+    '''
+    x = tf.random.uniform((1, 3))
+    temp = create_look_ahead_mask(x.shape[1])
+    temp
+
+    <tf.Tensor: shape=(3, 3), dtype=float32, numpy=
+    array([[0., 1., 1.],
+           [0., 0., 1.],
+           [0., 0., 0.]], dtype=float32)>
+    '''
+
+    mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
+    return mask  # (seq_len, seq_len)
+
+
+def scaled_dot_product_attention(q, k, v, mask):
+    """Calculate the attention weights.
+    q, k, v must have matching leading dimensions.
+    k, v must have matching penultimate dimension, i.e.: seq_len_k = seq_len_v.
+    The mask has different shapes depending on its type(padding or look ahead)
+    but it must be broadcastable for addition.
+
+    Args:
+        q: query shape == (..., seq_len_q, depth)
+        k: key shape == (..., seq_len_k, depth)
+        v: value shape == (..., seq_len_v, depth_v)
+        mask: Float tensor with shape broadcastable
+              to (..., seq_len_q, seq_len_k). Defaults to None.
+
+    Returns:
+        output, attention_weights
+    """
+
+    matmul_qk = tf.matmul(q, k, transpose_b=True)  # (batch, num_heads, seq_len_q, seq_len_k)
+
+    # scale matmul_qk
+    dk = tf.cast(tf.shape(k)[-1], tf.float32)
+    scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
+
+    # add the mask to the scaled tensor.
+    if mask is not None:
+        scaled_attention_logits += (mask * -1e9)
+
+    # softmax is normalized on the last axis (seq_len_k) so that the scores
+    # add up to 1.
+    attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)  # (..., seq_len_q, seq_len_k)
+
+    output = tf.matmul(attention_weights, v)  # (..., seq_len_q, depth_v)
+
+    return output, attention_weights

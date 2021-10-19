@@ -6,3 +6,15 @@ bayesianOptimization:
 train_validation_config:
   n_splits: 52
   max_train_size: 364
+  batch_size: 16
+  day_increment: 7
+  verbose: 0
+
+requirements:
+  n_input: 28
+  n_gap: 7
+  n_out: 4
+
+features:
+  main_feature: A
+  additional_features: [C, G]

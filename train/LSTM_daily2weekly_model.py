@@ -175,8 +175,8 @@ def build_cnn_lstm_v2_model(train: 'np.ndarray', train_label: 'np.ndarray', n_in
     """
 
     # prepare data
-    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input, n_out=n_out, n_gap=n_gap,
-                                                                 day_increment=day_increment,
+    train_x, _, _, train_y_weekly = time_series_data_preparation(train, train_label, n_input, n_out=n_out,
+                                                                 n_gap=n_gap, day_increment=day_increment,
                                                                  statistical_operation=statistical_operation)
 
     # define parameters
