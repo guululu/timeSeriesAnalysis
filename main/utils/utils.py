@@ -44,6 +44,9 @@ def optimization_process(fn, pbounds: Dict, model_name: str, model_type: str) ->
     logger = JSONLogger(path=logs)
     optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 
+    if logs:
+        bayesianOptimization['init_points'] = 0
+
     optimizer.maximize(
         **bayesianOptimization
     )
